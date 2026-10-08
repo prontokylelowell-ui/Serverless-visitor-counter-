@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor Counter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            padding: 48px;
+            text-align: center;
+            max-width: 480px;
+            width: 100%;
+        }
+
+        .icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            display: inline-block;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 28px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        .counter-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            padding: 32px 24px;
+            margin-bottom: 32px;
+            color: white;
+        }
+
+        .counter-label {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .counter-value {
+            font-size: 72px;
+            font-weight: 800;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .loading .counter-value::after {
+            content: '...';
+            animation: dots 1s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            flex-direction: column;
+        }
+
+        button {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-secondary {
+            background: #edf2f7;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #e2e8f0;
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            min-height: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .status.error {
+            background: #fff5f5;
+            color: #c53030;
+        }
+
+        .status.success {
+            background: #f0fff4;
+            color: #22543d;
+        }
+
+        .config-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .config-label {
+            display: block;
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 6px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .config-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+            color: #2d3748;
+            background: #f7fafc;
+        }
+
+        .config-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">👀</div>
+        <h1>Visitor Counter</h1>
+        <p class="subtitle">Powered by AWS Lambda + DynamoDB</p>
+
+        <div class="counter-box loading" id="counterBox">
+            <div class="counter-label">Total Visits</div>
+            <div class="counter-value" id="counterValue">0</div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn-primary" id="incrementBtn" onclick="incrementCounter()" disabled>
+                + Increment Count
+            </button>
+            <button class="btn-secondary" id="resetBtn" onclick="resetCounter()" disabled>
+                Reset Counter
+            </button>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="config-section">
+            <label class="config-label" for="apiUrl">API Endpoint URL</label>
+            <input
+                type="text"
+                class="config-input"
+                id="apiUrl"
+                placeholder="https://xxxxxx.execute-api.us-east-1.amazonaws.com/dev"
+                onchange="saveApiUrl()"
+            >
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'visitor_counter_api_url';
+
+        function getApiBase() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) return saved.replace(/\/$/, '');
+            const input = document.getElementById('apiUrl').value;
+            if (input) return input.replace(/\/$/, '');
+            return '';
+        }
+
+        function saveApiUrl() {
+            const url = document.getElementById('apiUrl').value;
+            localStorage.setItem(STORAGE_KEY, url);
+            if (url) fetchCounter();
+        }
+
+        function setStatus(msg, type = '') {
+            const status = document.getElementById('status');
+            status.textContent = msg || '';
+            status.className = 'status' + (type ? ' ' + type : '');
+        }
+
+        function setLoading(isLoading) {
+            const box = document.getElementById('counterBox');
+            const incBtn = document.getElementById('incrementBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            if (isLoading) {
+                box.classList.add('loading');
+            } else {
+                box.classList.remove('loading');
+            }
+            incBtn.disabled = isLoading || !getApiBase();
+            resetBtn.disabled = isLoading || !getApiBase();
+        }
+
+        function displayCount(num) {
+            document.getElementById('counterValue').textContent = num;
+        }
+
+        async function fetchCounter() {
+            const base = getApiBase();
+            if (!base) {
+                setStatus('Please enter your API endpoint URL above', 'error');
+                displayCount(0);
+                setLoading(false);
+                return;
+            }
+            setLoading(true);
+            setStatus('Loading...');
+            try {
+                const res = await fetch(base + '/visits');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                displayCount(data.visits || 0);
+                setStatus('Loaded successfully', 'success');
+            } catch (err) {
+                setStatus('Error: ' + err.message, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function incrementCounter() {
+            const base = getApiBase();
+            if (!base) {
+                setStatus('Please enter your API endpoint URL first', 'error');
+                return;
+            }
+            setLoading(true);
+            setStatus('Incrementing...');
+            try {
+                const res = await fetch(base + '/visits', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                displayCount(data.visits || 0);
+                setStatus('Incremented! ✨', 'success');
+            } catch (err) {
+                setStatus('Error: ' + err.message, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function resetCounter() {
+            const base = getApiBase();
+            if (!base) {
+                setStatus('Please enter your API endpoint URL first', 'error');
+                return;
+            }
+            if (!confirm('Are you sure you want to reset the counter to 0?')) return;
+            setLoading(true);
+            setStatus('Resetting...');
+            try {
+                const res = await fetch(base + '/visits/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                displayCount(data.visits || 0);
+                setStatus('Counter reset to 0', 'success');
+            } catch (err) {
+                setStatus('Error: ' + err.message, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        (function init() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                document.getElementById('apiUrl').value = saved;
+            }
+            fetchCounter();
+        })();
+    </script>
+</body>
+</html>

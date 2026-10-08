@@ -1,0 +1,147 @@
+{
+  "info": {
+    "name": "Serverless Visitor Counter API",
+    "_postman_id": "visitor-counter-api-v1",
+    "description": "Postman collection for testing the Serverless Visitor Counter API built with AWS Lambda, API Gateway, and DynamoDB.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com/dev",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Get Current Visits",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/visits",
+          "host": ["{{baseUrl}}"],
+          "path": ["visits"]
+        },
+        "description": "Retrieve the current visitor count without incrementing it."
+      },
+      "response": [
+        {
+          "name": "Success - 0 visits",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\"visits\": 0}"
+        },
+        {
+          "name": "Success - 42 visits",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\"visits\": 42}"
+        }
+      ]
+    },
+    {
+      "name": "Increment Visits",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/visits",
+          "host": ["{{baseUrl}}"],
+          "path": ["visits"]
+        },
+        "description": "Increment the visitor counter by 1 and return the new count."
+      },
+      "response": [
+        {
+          "name": "Success - Incremented",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\"visits\": 43}"
+        }
+      ]
+    },
+    {
+      "name": "Reset Counter",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/visits/reset",
+          "host": ["{{baseUrl}}"],
+          "path": ["visits", "reset"]
+        },
+        "description": "Reset the visitor counter back to 0."
+      },
+      "response": [
+        {
+          "name": "Success - Reset",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\"visits\": 0, \"message\": \"Counter reset successfully\"}"
+        }
+      ]
+    },
+    {
+      "name": "OPTIONS Preflight - /visits",
+      "request": {
+        "method": "OPTIONS",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/visits",
+          "host": ["{{baseUrl}}"],
+          "path": ["visits"]
+        },
+        "description": "CORS preflight request to verify CORS headers are returned correctly."
+      },
+      "response": []
+    }
+  ]
+}
